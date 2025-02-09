@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi GPS en Temps Réel</title>
+</head>
+<body>
+    <h1>Suivi GPS en Temps Réel</h1>
+    <p id="position">Attente de localisation...</p>
+
+    <script>
+        function startTracking() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition(success, error, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0
+                });
+            } else {
+                alert("La géolocalisation n'est pas supportée par ce navigateur.");
+            }
+        }
+
+        function success(position) {
+            let lat = position.coords.latitude;
+            let lon = position.coords.longitude;
+
+            document.getElementById("position").innerHTML =
+                `Latitude: ${lat} <br> Longitude: ${lon}`;
+
+            // Envoyer la position à OpenCage pour récupérer l'adresse
+            fetch(`https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=79c4ee0bdb594c318831cd21bad55f22`)
+                .then(response => response.json())
+                .then(data => {
+                    let adresse = data.results[0].formatted;
+                    document.getElementById("position").innerHTML += `<br>Adresse: ${adresse}`;
+                })
+                .catch(error => console.error("Erreur API OpenCage:", error));
+        }
+
+        function error(err) {
+            alert("Erreur de localisation: " + err.message);
+        }
+
+        startTracking();
+    </script>
+</body>
+</html>
