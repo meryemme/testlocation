@@ -3,46 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi GPS en Temps Réel</title>
+    <title>Géolocalisation en Temps Réel</title>
 </head>
 <body>
-    <h1>Suivi GPS en Temps Réel</h1>
-    <p id="position">Attente de localisation...</p>
+    <h1>Test de Géolocalisation</h1>
+    <p id="position">Ma position : Non déterminée</p>
 
     <script>
-        function startTracking() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.watchPosition(success, error, {
+        let lastLatitude = null;
+        let lastLongitude = null;
+        let minDistance = 0.0001; // Seuil pour éviter les petites variations
+
+        function trackLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updatePosition, showError, {
                     enableHighAccuracy: true,
-                    maximumAge: 0
+                    maximumAge: 0,
+                    timeout: 5000
                 });
             } else {
                 alert("La géolocalisation n'est pas supportée par ce navigateur.");
             }
         }
 
-        function success(position) {
-            let lat = position.coords.latitude;
-            let lon = position.coords.longitude;
+        function updatePosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            if (lastLatitude !== null && lastLongitude !== null) {
+                const distance = Math.sqrt(Math.pow(latitude - lastLatitude, 2) + Math.pow(longitude - lastLongitude, 2));
+                if (distance < minDistance) {
+                    return; // Ignore les petits changements
+                }
+            }
+
+            lastLatitude = latitude;
+            lastLongitude = longitude;
 
             document.getElementById("position").innerHTML =
-                `Latitude: ${lat} <br> Longitude: ${lon}`;
-
-            // Envoyer la position à OpenCage pour récupérer l'adresse
-            fetch(`https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lon}&key=79c4ee0bdb594c318831cd21bad55f22`)
-                .then(response => response.json())
-                .then(data => {
-                    let adresse = data.results[0].formatted;
-                    document.getElementById("position").innerHTML += `<br>Adresse: ${adresse}`;
-                })
-                .catch(error => console.error("Erreur API OpenCage:", error));
+                "Latitude: " + latitude + "<br>Longitude: " + longitude;
         }
 
-        function error(err) {
-            alert("Erreur de localisation: " + err.message);
+        function showError(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    alert("L'utilisateur a refusé la demande de géolocalisation.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    alert("L'information de position est indisponible.");
+                    break;
+                case error.TIMEOUT:
+                    alert("La demande de géolocalisation a expiré.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    alert("Une erreur inconnue s'est produite.");
+                    break;
+            }
         }
 
-        startTracking();
+        trackLocation(); // Lancer le suivi dès l'ouverture du site
     </script>
 </body>
 </html>
